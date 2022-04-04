@@ -1,0 +1,41 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ansible-builder
+spec:
+  description: >-
+    This task will use ansible-builder to build an Ansible Execution Environment.
+  workspaces:
+    - name: ee-repo
+      description: The source workspace where the Execution Environment code has been cloned.
+  params:
+    - description: Name of the container image to be built
+      name: name
+      type: string
+      default: "ansible-execution-env"
+    - description: Tag of the container image to be built
+      name: tag
+      type: string
+      default: "latest"
+    - description: ansible-builder output verbosity
+      name: verbosity
+      type: string
+      default: "2"
+    - description: ansible-builder Build Args
+      name: build-args
+      type: string
+      default: ""
+  steps:
+
+    - name: ansible-builder
+      image: registry.redhat.io/ansible-automation-platform-21/ansible-builder-rhel8:1.0.1-47
+      script: |
+        #!/bin/sh
+        set -eux -o pipefail
+
+        env
+
+        EE_DIR="$(workspaces.ee-repo.path)"
+        cd "$EE_DIR"
+
+        ansible-builder build -v "$(params.verbosity)" --tag "$(params.name):$(params.tag)" --build-arg "$(params.build-args)"
