@@ -1,0 +1,95 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ansible-builder
+spec:
+  workspaces:
+  - name: ee-repo
+  - name: podman-authfile
+  params:
+  - name: git-url
+    type: string
+    description: url of the git repo for the code of deployment
+    default: https://github.com/jtudelag/ansible-execution-environments.git
+  - name: git-revision
+    type: string
+    description: revision to be used from repo of the code for deployment (Commit id)
+    default: main
+  - description: Name of the container image to be built
+    name: NAME
+    type: string
+  - description: Tag of the container image to be built
+    name: TAG
+    type: string
+    default: "latest"
+  - description: ansible-builder output verbosity
+    name: VERBOSITY
+    type: string
+    default: "2"
+  - description: ansible-builder Build Args
+    name: BUILD_ARGS
+    type: string
+    default: ""
+  - description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
+    name: PODMAN_TLSVERIFY
+    type: string
+    default: "false"
+  tasks:
+
+    - name: fetch-repository
+      taskRef:
+        name: git-clone-1-6-0
+        kind: ClusterTask
+      workspaces:
+      - name: output
+        workspace: ee-repo
+      params:
+      - name: url
+        value: $(params.git-url)
+      - name: deleteExisting
+        value: "true"
+      - name: revision
+        value: $(params.git-revision)
+
+    # - name: build-image
+    #   taskRef:
+    #     name: buildah
+    #     kind: ClusterTask
+    #   workspaces:
+    #   - name: source
+    #     workspace: shared-workspace
+    #   runAfter:
+    #   - fetch-repository
+    #   params:
+    #   - name: TLSVERIFY
+    #     value: "false"
+    #   - name: IMAGE
+    #     value: $(params.image-registry)/$(params.image-repository)/$(params.application):$(params.short-git-revision)
+
+    # - name: debug
+    #   taskRef:
+    #     name: debug-git-ssh
+    #     kind: Task
+    #   runAfter:
+    #   - build-image
+
+    - name: ansible-builder
+      taskRef:
+        name: ansible-builder
+        kind: Task
+      workspaces:
+      - name: ee-repo
+        workspace: ee-repo
+      runAfter:
+      - fetch-repository
+      params:
+      - name: NAME
+        value: $(params.NAME)
+      - name: TAG
+        value: $(params.TAG)
+      - name: VERBOSITY
+        value: $(params.VERBOSITY)
+      - name: BUILD_ARGS
+        value: $(params.BUILD_ARGS)
+      - name: PODMAN_TLSVERIFY
+        value: $(params.PODMAN_TLSVERIFY)

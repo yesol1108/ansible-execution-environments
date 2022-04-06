@@ -35,7 +35,7 @@ spec:
       default: "false"
   steps:
 
-    - name: ansible-builder create context
+    - name: ansible-builder-create
       workingDir: $(workspaces.ee-repo.path)
       image: registry.redhat.io/ansible-automation-platform-21/ansible-builder-rhel8:1.0.1-47
       script: |
@@ -44,9 +44,9 @@ spec:
 
         env
 
-        ansible-builder create -v "$(params.VERBOSITY)" --tag "$(params.NAME):$(params.TAG)" --build-arg "$(params.BUILD_ARGS)"
+        ansible-builder create -v "$(params.VERBOSITY)"
 
-    - name: podman build ee
+    - name: podman-build-ee
       workingDir: $(workspaces.ee-repo.path)
       image: registry.redhat.io/ubi8/podman:8.5-17
       script: |
@@ -55,10 +55,18 @@ spec:
 
         env
 
-        PODMAN_AUTHFILE=""
-        [[ "$(workspaces.podman-authfile.bound)" == "true" ]] && PODMAN_AUTHFILE="--authfile "$(workspaces.podman-authfile.path)"
-
         IMAGE_NAME="$(params.NAME):$(params.TAG)"
-        podman build --tls-verify "$(params.PODMAN_TLSVERIFY)" "$PODMAN_AUTHFILE" -f context/Containerfile -t "$IMAGE_NAME"
+        if [[ "$(workspaces.podman-authfile.bound)" == "true" ]]
+        then
+          PODMAN_AUTHFILE="--authfile $(workspaces.podman-authfile.path)"
+          podman build --tls-verify "$(params.PODMAN_TLSVERIFY)" "$PODMAN_AUTHFILE" -f context/Containerfile -t "$IMAGE_NAME"
 
-        podman push --tls-verify "$(params.PODMAN_TLSVERIFY)" "$PODMAN_AUTHFILE" "$IMAGE_NAME"
+          podman push --tls-verify "$(params.PODMAN_TLSVERIFY)" "$PODMAN_AUTHFILE" "$IMAGE_NAME"
+
+        else
+
+          podman build --tls-verify "$(params.PODMAN_TLSVERIFY)" -f context/Containerfile -t "$IMAGE_NAME"
+
+          podman push --tls-verify "$(params.PODMAN_TLSVERIFY)" "$IMAGE_NAME"
+
+        fi
