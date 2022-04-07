@@ -4,7 +4,7 @@ metadata:
   name: ansible-builder
 spec:
   description: >-
-    This task will use ansible-builder to creat (not build) an Ansible Execution Environment.
+    This task will use ansible-builder to create (not build) an Ansible Execution Environment.
   workspaces:
     - name: ee-repo
       description: The source workspace where the Execution Environment code is cloned.

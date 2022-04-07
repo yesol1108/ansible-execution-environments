@@ -5,10 +5,8 @@ metadata:
 spec:
   workspaces:
   - name: ee-repo
-  - name: registry-authfile
-    optional: true
-    mountPath: /etc/containers/.authfile
   params:
+  # Fetch Task
   - name: git-url
     type: string
     description: url of the git repo for the code of deployment
@@ -17,6 +15,19 @@ spec:
     type: string
     description: revision to be used from repo of the code for deployment (Commit id)
     default: main
+  # Ansible Builder
+  # - description: ansible-builder output verbosity
+  #   name: VERBOSITY
+  #   type: string
+  #   default: "2"
+  - name: ANSIBLE_BUILDER_IMAGE
+    description: The location of the ansible-builder image.
+    type: string
+    default: registry.redhat.io/ansible-automation-platform-21/ansible-builder-rhel8:1.0.1-47
+  # - name: OUTPUT_FILE
+  #   description: Output of the ansible-builder, either Dockerfile or Containerfile.
+  #   type: string
+  #   default: Containerfile
   - description: Name of the container image to be built
     name: NAME
     type: string
@@ -24,14 +35,6 @@ spec:
     name: TAG
     type: string
     default: "latest"
-  - description: ansible-builder output verbosity
-    name: VERBOSITY
-    type: string
-    default: "2"
-  - description: ANSIBLE_BUILDER_IMAGE
-    name: he location of the ansible-builder builder image.
-    type: string
-    default: registry.redhat.io/ansible-automation-platform-21/ansible-builder-rhel8:1.0.1-47
   - description: Path to the directory to use as context for buildah.
     name: CONTEXT
     type: string
@@ -59,7 +62,7 @@ spec:
         name: git-clone-1-6-0
         kind: ClusterTask
       workspaces:
-      - name: ee-repo
+      - name: output
         workspace: ee-repo
       params:
       - name: url
@@ -79,8 +82,6 @@ spec:
       runAfter:
       - fetch-repository
       params:
-      - name: VERBOSITY
-        value: $(params.VERBOSITY)
       - name: BUILDER_IMAGE
         value: $(params.ANSIBLE_BUILDER_IMAGE)
 
@@ -89,12 +90,8 @@ spec:
         name: buildah
         kind: ClusterTask
       workspaces:
-      - name: ee-repo
+      - name: source
         workspace: ee-repo
-      - name: registry-authfile
-        workspace: registry-authfile
-        configmap:
-          name: registry-creds
       runAfter:
       - ansible-builder
       params:
@@ -106,7 +103,7 @@ spec:
         value: "$(params.CONTEXT)"
       - name: DOCKERFILE
         value: "$(params.DOCKERFILE)"
-      - name: BUILD_ARGS
+      - name: BUILD_EXTRA_ARGS
         value: "$(params.BUILD_ARGS)"
-      - name: PUSH_ARGS
+      - name: PUSH_EXTRA_ARGS
         value: "$(params.PUSH_ARGS)"
