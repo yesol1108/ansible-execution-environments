@@ -5,7 +5,9 @@ metadata:
 spec:
   workspaces:
   - name: ee-repo
-  - name: podman-authfile
+  - name: registry-authfile
+    optional: true
+    mountPath: /etc/containers/.authfile
   params:
   - name: git-url
     type: string
@@ -26,12 +28,28 @@ spec:
     name: VERBOSITY
     type: string
     default: "2"
-  - description: ansible-builder Build Args
+  - description: ANSIBLE_BUILDER_IMAGE
+    name: he location of the ansible-builder builder image.
+    type: string
+    default: registry.redhat.io/ansible-automation-platform-21/ansible-builder-rhel8:1.0.1-47
+  - description: Path to the directory to use as context for buildah.
+    name: CONTEXT
+    type: string
+    default: "context/"
+  - description: The path to the Dockerfile to execute.
+    name: DOCKERFILE
+    type: string
+    default: "Containerfile"
+  - description: buildah build Args
     name: BUILD_ARGS
     type: string
     default: ""
+  - description: buildah push Args
+    name: PUSH_ARGS
+    type: string
+    default: ""
   - description: Verify the TLS on the registry endpoint (for push/pull to a non-TLS registry)
-    name: PODMAN_TLSVERIFY
+    name: TLSVERIFY
     type: string
     default: "false"
   tasks:
@@ -41,7 +59,7 @@ spec:
         name: git-clone-1-6-0
         kind: ClusterTask
       workspaces:
-      - name: output
+      - name: ee-repo
         workspace: ee-repo
       params:
       - name: url
@@ -50,28 +68,6 @@ spec:
         value: "true"
       - name: revision
         value: $(params.git-revision)
-
-    # - name: build-image
-    #   taskRef:
-    #     name: buildah
-    #     kind: ClusterTask
-    #   workspaces:
-    #   - name: source
-    #     workspace: shared-workspace
-    #   runAfter:
-    #   - fetch-repository
-    #   params:
-    #   - name: TLSVERIFY
-    #     value: "false"
-    #   - name: IMAGE
-    #     value: $(params.image-registry)/$(params.image-repository)/$(params.application):$(params.short-git-revision)
-
-    # - name: debug
-    #   taskRef:
-    #     name: debug-git-ssh
-    #     kind: Task
-    #   runAfter:
-    #   - build-image
 
     - name: ansible-builder
       taskRef:
@@ -83,13 +79,34 @@ spec:
       runAfter:
       - fetch-repository
       params:
-      - name: NAME
-        value: $(params.NAME)
-      - name: TAG
-        value: $(params.TAG)
       - name: VERBOSITY
         value: $(params.VERBOSITY)
+      - name: BUILDER_IMAGE
+        value: $(params.ANSIBLE_BUILDER_IMAGE)
+
+    - name: build-image
+      taskRef:
+        name: buildah
+        kind: ClusterTask
+      workspaces:
+      - name: ee-repo
+        workspace: ee-repo
+      - name: registry-authfile
+        workspace: registry-authfile
+        configmap:
+          name: registry-creds
+      runAfter:
+      - ansible-builder
+      params:
+      - name: TLSVERIFY
+        value: "false"
+      - name: IMAGE
+        value: $(params.NAME):$(params.TAG)
+      - name: CONTEXT
+        value: "$(params.CONTEXT)"
+      - name: DOCKERFILE
+        value: "$(params.DOCKERFILE)"
       - name: BUILD_ARGS
-        value: $(params.BUILD_ARGS)
-      - name: PODMAN_TLSVERIFY
-        value: $(params.PODMAN_TLSVERIFY)
+        value: "$(params.BUILD_ARGS)"
+      - name: PUSH_ARGS
+        value: "$(params.PUSH_ARGS)"
