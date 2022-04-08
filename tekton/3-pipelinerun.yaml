@@ -1,8 +1,7 @@
 ﻿apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  namespace: lab24-jorge
-  name: testtt
+  name: build-ee
   labels:
     tekton.dev/pipeline: ansible-builder
 spec:
@@ -17,7 +16,7 @@ spec:
     - name: NAME
       value: quay.io/jtudelag/ansible-ee-test
     - name: TAG
-      value: latest
+      value: test
     - name: CONTEXT
       value: context/
     - name: DOCKERFILE

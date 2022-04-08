@@ -48,4 +48,4 @@ spec:
 
         env
 
-        ansible-builder create -f "$(params.FILENAME) -c "$(params.BUILD_CONTEXT)" --output-filename "$(params.OUTPUT_FILE)" -v "$(params.VERBOSITY)"
+        ansible-builder create -f "$(params.FILENAME)" -c "$(params.BUILD_CONTEXT)" --output-filename "$(params.OUTPUT_FILENAME)" -v "$(params.VERBOSITY)"

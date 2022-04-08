@@ -72,12 +72,12 @@ spec:
       - name: revision
         value: $(params.git-revision)
 
-    - name: ansible-builder
+    - name: ansible-builder-create
       taskRef:
-        name: ansible-builder
+        name: ansible-builder-create
         kind: Task
       workspaces:
-      - name: ee-repo
+      - name: source
         workspace: ee-repo
       runAfter:
       - fetch-repository
@@ -93,7 +93,7 @@ spec:
       - name: source
         workspace: ee-repo
       runAfter:
-      - ansible-builder
+      - ansible-builder-create
       params:
       - name: TLSVERIFY
         value: "false"
