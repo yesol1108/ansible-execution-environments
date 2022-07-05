@@ -17,7 +17,7 @@ additional_build_steps:
   prepend: |
     RUN whoami
     RUN cat /etc/os-release
-    RUN cat <<EOF > /tmp/ansible-result.txt "called by Ansible~!!!!!" EOF 
+    RUN touch /tmp/ansible-result.txt
   append:
     - RUN echo This is a post-install command!
     - RUN ls -la /etc
